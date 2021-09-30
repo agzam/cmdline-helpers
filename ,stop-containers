@@ -1,0 +1,22 @@
+#!/usr/bin/env bb
+;; -*- mode: clojure -*-
+
+(require '[clojure.string :as str]
+         '[babashka.tasks :refer [shell]]
+         '[babashka.fs :as fs])
+
+(defn find-root []
+  (->> "git rev-parse --show-toplevel"
+       (shell {:out :string}) :out str/trim))
+
+(defn stop-containers []
+  (let [project-root (find-root)
+        locations (map (partial str project-root "/")
+                       ["containers/dev/docker-compose.yml"
+                        "containers/docker-compose.yml"])
+        docker-compose-f (first (filter fs/exists? locations))]
+    (when docker-compose-f
+      (println "****** Stopping containers ******")
+      (shell (str "docker compose -f " docker-compose-f " down")))))
+
+(stop-containers)
